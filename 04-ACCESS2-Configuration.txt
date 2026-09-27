@@ -1,0 +1,115 @@
+================================================================================
+                         ACCESS SWITCH 2
+================================================================================
+
+enable
+configure terminal
+
+! ===== HOSTNAME =====
+hostname ACCESS2
+
+! ===== VLAN CREATION =====
+vlan 101
+  name MGMT
+exit
+
+vlan 102
+  name Camera
+exit
+
+vlan 103
+  name WorkStation
+exit
+
+vlan 104
+  name Server
+exit
+
+! ===== SPANNING TREE =====
+spanning-tree mode rapid-pvst
+
+! ===== TRUNK LINKS TO CORE SWITCHES =====
+
+! Link to CORE2 e0/2 (Primary Link)
+interface ethernet 0/0
+  description Trunk-to-CORE2-e0/2
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  no shutdown
+exit
+
+! Link to CORE1 e0/3 (Secondary Link - Backup)
+interface ethernet 0/1
+  description Trunk-to-CORE1-e0/3
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  no shutdown
+exit
+
+! ===== ACCESS PORTS =====
+
+! e0/2 - FRS Server (VLAN 104)
+interface ethernet 0/2
+  description Access-FRS-Server-VLAN104
+  switchport mode access
+  switchport access vlan 104
+  spanning-tree portfast
+  no shutdown
+exit
+
+! e0/3 - VMS Server (VLAN 104)
+interface ethernet 0/3
+  description Access-VMS-Server-VLAN104
+  switchport mode access
+  switchport access vlan 104
+  spanning-tree portfast
+  no shutdown
+exit
+
+! ===== MANAGEMENT SVI (VLAN 101) =====
+interface vlan 101
+  ip address 100.77.191.11 255.255.255.128
+  description MGMT-VLAN-SVI
+  no shutdown
+exit
+
+! ===== DEFAULT GATEWAY =====
+ip default-gateway 100.77.191.5
+
+! ===== IP ROUTING =====
+ip routing
+
+! ===== OSPF CONFIGURATION =====
+router ospf 1
+  router-id 100.77.191.11
+  network 100.77.191.0 0.0.0.127 area 0
+  passive-interface vlan 101
+exit
+
+! ===== MANAGEMENT =====
+username admin privilege 15 secret admin123
+enable secret admin123
+service password-encryption
+
+ip http server
+ip http secure-server
+ip http authentication local
+
+snmp-server community public RO
+snmp-server community private RW
+snmp-server location "EVE-NG LAB - Access Switch 2"
+snmp-server contact "Network Admin"
+snmp-server trap-source vlan 101
+
+end
+write memory
+
+! ================================================================================
+! ⭐ Verification Commands:
+! show vlan brief
+! show spanning-tree brief
+! show ip ospf neighbor
+! show interface status
+! ================================================================================

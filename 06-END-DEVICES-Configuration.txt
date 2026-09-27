@@ -1,0 +1,169 @@
+================================================================================
+            END DEVICES CONFIGURATION
+================================================================================
+
+======================== WORKSTATION PC 1 ========================
+Location: ACCESS1 e0/2
+VLAN: 103 (WorkStation)
+IP Address: 100.77.189.66/26
+Gateway: 100.77.189.65
+
+--- Linux (Ubuntu/Debian) Configuration ---
+
+sudo nano /etc/netplan/01-netcfg.yaml
+
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses:
+        - 100.77.189.66/26
+      gateway4: 100.77.189.65
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+      routes:
+        - to: 0.0.0.0/0
+          via: 100.77.189.65
+
+sudo netplan apply
+sudo netplan reload
+
+--- Verification ---
+ip addr show
+ip route show
+ping 100.77.189.65  # Gateway (HSRP Virtual IP)
+ping 100.77.191.1   # CORE1 MGMT SVI
+ping 100.76.60.1    # Camera Gateway
+
+
+======================== FRS SERVER ========================
+Location: ACCESS2 e0/2
+VLAN: 104 (Server)
+IP Address: 100.77.189.23/27
+Gateway: 100.77.189.1
+
+--- Linux (Ubuntu/Debian) Configuration ---
+
+sudo nano /etc/netplan/01-netcfg.yaml
+
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses:
+        - 100.77.189.23/27
+      gateway4: 100.77.189.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+      routes:
+        - to: 0.0.0.0/0
+          via: 100.77.189.1
+
+sudo netplan apply
+sudo netplan reload
+
+--- Verification ---
+ip addr show
+ip route show
+ping 100.77.189.1   # Gateway (HSRP Virtual IP)
+ping 100.77.191.1   # CORE1 MGMT SVI
+
+
+======================== VMS SERVER ========================
+Location: ACCESS2 e0/3
+VLAN: 104 (Server)
+IP Address: 100.77.189.22/27
+Gateway: 100.77.189.1
+
+--- Linux (Ubuntu/Debian) Configuration ---
+
+sudo nano /etc/netplan/01-netcfg.yaml
+
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses:
+        - 100.77.189.22/27
+      gateway4: 100.77.189.1
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+      routes:
+        - to: 0.0.0.0/0
+          via: 100.77.189.1
+
+sudo netplan apply
+sudo netplan reload
+
+--- Verification ---
+ip addr show
+ip route show
+ping 100.77.189.1   # Gateway (HSRP Virtual IP)
+ping 100.77.191.1   # CORE1 MGMT SVI
+
+
+======================== IP CAMERA 1 ========================
+Location: ACCESS1 e0/3
+VLAN: 102 (Camera)
+IP Address: 100.76.60.2/23
+Gateway: 100.76.60.1
+Subnet Mask: 255.255.254.0
+
+--- Web Interface Configuration ---
+https://100.76.60.2
+Username: admin
+Password: (manufacturer default)
+
+--- SSH Configuration ---
+ssh admin@100.76.60.2
+
+--- Verification ---
+ping 100.76.60.1    # Gateway (HSRP Virtual IP)
+ping 100.77.191.1   # CORE1 MGMT SVI
+
+
+======================== IP CAMERA 2 ========================
+Location: FIELD-SWITCH e0/0
+VLAN: 102 (Camera)
+IP Address: 100.76.60.3/23
+Gateway: 100.76.60.1
+Subnet Mask: 255.255.254.0
+
+--- Web Interface Configuration ---
+https://100.76.60.3
+Username: admin
+Password: (manufacturer default)
+
+--- SSH Configuration ---
+ssh admin@100.76.60.3
+
+--- Verification ---
+ping 100.76.60.1    # Gateway (HSRP Virtual IP)
+ping 100.77.191.1   # CORE1 MGMT SVI
+
+
+======================== IP ADDRESSING SUMMARY ========================
+
+DEVICE                  | IP ADDRESS          | GATEWAY         | VLAN  | TYPE
+------------------------+---------------------+-----------------+-------+----------
+CORE1 MGMT SVI          | 100.77.191.1/25     | 100.77.191.5    | 101   | L3 Port
+CORE2 MGMT SVI          | 100.77.191.2/25     | 100.77.191.5    | 101   | L3 Port
+ACCESS1 MGMT SVI        | 100.77.191.10/25    | 100.77.191.5    | 101   | L3 Port
+ACCESS2 MGMT SVI        | 100.77.191.11/25    | 100.77.191.5    | 101   | L3 Port
+FIELD-SWITCH MGMT SVI   | 100.77.191.12/25    | 100.77.191.5    | 101   | L3 Port
+                        |                     |                 |       |
+HSRP Virtual IP MGMT    | 100.77.191.5/25     | -               | 101   | Virtual
+HSRP Virtual IP Camera  | 100.76.60.1/23      | -               | 102   | Virtual
+HSRP Virtual IP Workst  | 100.77.189.65/26    | -               | 103   | Virtual
+HSRP Virtual IP Server  | 100.77.189.1/27     | -               | 104   | Virtual
+                        |                     |                 |       |
+Workstation PC1         | 100.77.189.66/26    | 100.77.189.65   | 103   | End Device
+FRS Server              | 100.77.189.23/27    | 100.77.189.1    | 104   | End Device
+VMS Server              | 100.77.189.22/27    | 100.77.189.1    | 104   | End Device
+Camera 1                | 100.76.60.2/23      | 100.76.60.1     | 102   | End Device
+Camera 2                | 100.76.60.3/23      | 100.76.60.1     | 102   | End Device
+
+================================================================================
