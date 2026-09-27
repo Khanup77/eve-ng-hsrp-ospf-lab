@@ -1,0 +1,182 @@
+================================================================================
+                    CORE SWITCH 1 - ACTIVE FOR ALL VLANs
+                         Simple Redundancy (No Load Balancing)
+================================================================================
+
+enable
+configure terminal
+
+! ===== HOSTNAME =====
+hostname CORE1
+
+! ===== VLAN CREATION =====
+vlan 101
+  name MGMT
+exit
+
+vlan 102
+  name Camera
+exit
+
+vlan 103
+  name WorkStation
+exit
+
+vlan 104
+  name Server
+exit
+
+! ===== SPANNING TREE CONFIGURATION =====
+spanning-tree mode rapid-pvst
+
+! CORE1 को सभी VLANs के लिए Root Bridge बनाओ
+spanning-tree vlan 101,102,103,104 priority 4096
+
+! ===== INTERFACE CONFIGURATIONS =====
+
+! CORE Link (ISL) - CORE1 to CORE2
+interface ethernet 0/1
+  description CORE-LINK-to-CORE2
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  spanning-tree portfast trunk
+  no shutdown
+exit
+
+! Access Switch 1 Link
+interface ethernet 0/2
+  description ACCESS1-Link-Primary
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  spanning-tree portfast trunk
+  no shutdown
+exit
+
+! Access Switch 2 Link
+interface ethernet 0/3
+  description ACCESS2-Link-Primary
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  spanning-tree portfast trunk
+  no shutdown
+exit
+
+! Field Switch Link
+interface ethernet 0/0
+  description FIELD-Switch-Link
+  switchport trunk encapsulation dot1q
+  switchport mode trunk
+  switchport trunk allowed vlan 101,102,103,104
+  spanning-tree portfast trunk
+  no shutdown
+exit
+
+! ===== SVI (VLAN INTERFACES) =====
+
+interface vlan 101
+  ip address 100.77.191.1 255.255.255.128
+  description MGMT-VLAN-SVI
+  no shutdown
+exit
+
+interface vlan 102
+  ip address 100.76.60.10 255.255.254.0
+  description Camera-VLAN-SVI
+  no shutdown
+exit
+
+interface vlan 103
+  ip address 100.77.189.70 255.255.255.192
+  description WorkStation-VLAN-SVI
+  no shutdown
+exit
+
+interface vlan 104
+  ip address 100.77.189.10 255.255.255.224
+  description Server-VLAN-SVI
+  no shutdown
+exit
+
+! ===== 🟢 HSRP CONFIGURATION - CORE1 ACTIVE सभी VLANs में =====
+
+! VLAN 101 - MGMT (CORE1 ACTIVE)
+interface vlan 101
+  standby 1 ip 100.77.191.5
+  standby 1 priority 120              ⭐ HIGH PRIORITY = ACTIVE
+  standby 1 preempt                   ⭐ Automatically लेगा Active role
+  standby 1 track ethernet 0/2 10     ! अगर downtime तो -10 priority
+  standby 1 track ethernet 0/3 10
+  no shutdown
+exit
+
+! VLAN 102 - Camera (CORE1 ACTIVE)
+interface vlan 102
+  standby 2 ip 100.76.60.1
+  standby 2 priority 120              ⭐ HIGH PRIORITY = ACTIVE
+  standby 2 preempt
+  standby 2 track ethernet 0/2 10
+  standby 2 track ethernet 0/3 10
+  no shutdown
+exit
+
+! VLAN 103 - WorkStation (CORE1 ACTIVE)
+interface vlan 103
+  standby 3 ip 100.77.189.65
+  standby 3 priority 120              ⭐ HIGH PRIORITY = ACTIVE
+  standby 3 preempt
+  standby 3 track ethernet 0/2 10
+  standby 3 track ethernet 0/3 10
+  no shutdown
+exit
+
+! VLAN 104 - Server (CORE1 ACTIVE)
+interface vlan 104
+  standby 4 ip 100.77.189.1
+  standby 4 priority 120              ⭐ HIGH PRIORITY = ACTIVE
+  standby 4 preempt
+  standby 4 track ethernet 0/2 10
+  standby 4 track ethernet 0/3 10
+  no shutdown
+exit
+
+! ===== OSPF ROUTING =====
+router ospf 1
+  router-id 100.77.191.1
+  network 100.77.191.0 0.0.0.127 area 0
+  network 100.76.60.0 0.0.1.255 area 0
+  network 100.77.189.0 0.0.0.255 area 0
+  passive-interface default
+  no passive-interface vlan 101
+  no passive-interface vlan 102
+  no passive-interface vlan 103
+  no passive-interface vlan 104
+  auto-cost reference-bandwidth 100000
+exit
+
+ip routing
+
+! ===== MANAGEMENT =====
+username admin privilege 15 secret admin123
+enable secret admin123
+service password-encryption
+
+ip http server
+ip http secure-server
+ip http authentication local
+
+snmp-server community public RO
+snmp-server community private RW
+snmp-server location "EVE-NG LAB - CORE1"
+snmp-server contact "Network Admin"
+
+end
+write memory
+
+! ================================================================================
+! ⭐ HSRP Status Check करो:
+! show standby brief
+! show standby vlan 101 detail
+! ================================================================================
